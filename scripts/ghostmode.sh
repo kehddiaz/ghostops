@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ┌────────────────────────────────────────────────────────────┐
-# │ ghostmode.sh v1.2 — GhostOps Stealth Firewall Module       │
+# │ ghostmode.sh v1.2.2 — GhostOps Stealth Firewall Module     │
 # ├────────────────────────────────────────────────────────────┤
 # │ Author: Kehd Emmanuel H. Diaz                              │
 # │ Purpose: Block LAN/multicast exposure while keeping WAN    │
@@ -14,7 +14,7 @@ CMD="${1:-}"
 TABLE="ghost"
 
 # Interface fallback: try nmcli, then default route
-IFACE="$(nmcli -t -f DEVICE,STATE d 2>/dev/null | grep ':connected' | cut -d: -f1 | head -n1 || true)"
+IFACE="$(nmcli -t -f DEVICE,STATE d 2>/dev/null | grep ':connected' | cut -d: -f1 | head -n1)"
 IFACE="${IFACE:-$(ip route 2>/dev/null | awk '/default/ {print $5; exit}')}"
 
 # Defaults — adjust if needed
