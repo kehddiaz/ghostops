@@ -1,0 +1,5 @@
+# Local logs and snapshots (not tracked)
+logs/
+*.bak
+*.swp
+~/.ghostmode/
