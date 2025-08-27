@@ -53,11 +53,22 @@ GhostOps is a modular control suite for stealth networking on Linux. It combines
 # Reset logs and snapshots
 ./ghostctl.sh reset
 
----
+🔧 Module: ghostmode.sh v1.2.2
+Modular stealth firewall ruleset for LAN/multicast blocking with WAN passthrough. Supports dry-run previews, snapshot logging, and interface fallback logic.
 
-## ✅ Step 2: Save and Commit
+Usage:
+ghostmode.sh on         # Apply Ghost Mode rules
+ghostmode.sh off        # Remove Ghost Mode table
+ghostmode.sh --dry-run  # Preview rules without applying
 
-```bash
-git add README.md
-git commit -m "docs: update README for ghostctl v1.2 with usage, layout, safety"
-git push origin main
+Highlights:
+
+    Encapsulated nftables rule emission via heredoc
+
+    Snapshot logging before rule changes
+
+    Interface auto-detection via nmcli and route fallback
+
+    IPv4 LAN, IPv6 link-local, and multicast blocking
+
+    Audit-safe and rollback-ready
