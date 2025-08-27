@@ -2607,3 +2607,10 @@ Every activation is logged. Every mode is modular. Every change is traceable.
 
 
 Once you paste this into `ghostmode.md`, you’ve got a discoverable, reproducible doc worthy of open-source eyes. Let me know when you're ready to scaffold `ghostctl.logparse.sh` — we’ll make your suite self-auditing next.
+
+## [v1.2.2] — 2025-08-27
+- Fixed missing heredoc terminator in `emit_rules()`
+- Patched broken command substitution in IFACE fallback
+- Moved all nft rules inside heredoc for safe emission
+- Hardened log prefixes and rate limits
+- Verified dry-run output and syntax integrity
