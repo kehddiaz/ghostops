@@ -227,4 +227,19 @@ version_command() {
 }
 
 # ---[ main ]------------------------------------------------------------------
-case "$CMD"
+case "$CMD" in
+  on)        on_command ;;
+  off)       off_command ;;
+  vpn-on)    vpn_on_command ;;
+  vpn-off)   vpn_off_command ;;
+  stealth)   stealth_command ;;
+  status)    status_command ;;
+  audit)     audit_command ;;
+  dry-run)   dry_run_command ;;
+  reset)     reset_command ;;
+  autorun)   autorun_command ;;
+  --version) version_command ;;
+  --help)    show_help ;;
+  *)         echo "❌ Unknown command: $CMD"; show_help; exit 1 ;;
+esac
+
