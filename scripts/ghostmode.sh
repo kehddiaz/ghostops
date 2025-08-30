@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
 # ┌────────────────────────────────────────────────────────────┐
-# │ ghostmode.sh v1.2.2 — GhostOps Stealth Firewall Module     │
+# │ ghostmode.sh v1.2.3 — GhostOps Stealth Firewall Module     │
 # ├────────────────────────────────────────────────────────────┤
 # │ Author: Kehd Emmanuel H. Diaz                              │
 # │ Purpose: Block LAN/multicast exposure while keeping WAN    │
-# │ Modules: dry-run, snapshot, iface fallback                 │
-# │ Last Updated: 2025-08-27                                   │
+# │ Modules: dry-run, snapshot, iface fallback, HOME fallback  │
+# │ Last Updated: 2025-08-30                                   │
 # └────────────────────────────────────────────────────────────┘
 
 set -euo pipefail
+: "${HOME:=/home/kehd}"  # Shell-safe fallback for sterile environments
 
 CMD="${1:-}"
 TABLE="ghost"
 
 # Interface fallback: try nmcli, then default route
-IFACE="$(nmcli -t -f DEVICE,STATE d 2>/dev/null | grep ':connected' | cut -d: -f1 | head -n1)"
-IFACE="${IFACE:-$(ip route 2>/dev/null | awk '/default/ {print $5; exit}')}"
+IFACE="$(ip route | awk '/default/ {print $5; exit}')"
+IFACE="${IFACE:-wlan0}"  # Fallback to wlan0 if nothing found
 
-# Defaults — adjust if needed
+# Defaults — override via env if needed
 LAN_SUBNET="${LAN_SUBNET:-192.168.100.0/24}"
 V6_LL="fe80::/10"
 V6_MC="ff00::/8"
@@ -59,26 +60,26 @@ add rule inet ${TABLE} output meta oifname "${IFACE}" ip daddr 224.0.0.0/4 drop
 RULES
 }
 
-if [[ "$CMD" == "--dry-run" ]]; then
-  echo "🔍 Dry-run: Previewing Ghost Mode rules for IFACE='${IFACE:-unknown}' and LAN='${LAN_SUBNET}'"
-  emit_rules
-  exit 0
-fi
+case "$CMD" in
+  "--dry-run")
+    echo "🔍 Dry-run: Previewing Ghost Mode rules for IFACE='${IFACE:-unknown}' and LAN='${LAN_SUBNET}'"
+    emit_rules
+    ;;
 
-if [[ "$CMD" == "on" ]]; then
-  # Snapshot current ruleset before changes
-  sudo nft list ruleset > "${SNAPSHOT_DIR}/snapshot-before-$(date -u +%Y%m%dT%H%M%SZ).nft"
+  "on")
+    SNAPSHOT_FILE="${SNAPSHOT_DIR}/snapshot-before-$(date -u +%Y%m%dT%H%M%SZ).nft"
+    sudo nft list ruleset > "$SNAPSHOT_FILE"
+    emit_rules | sudo nft -f -
+    echo "✅ Ghost Mode enabled on IFACE='${IFACE:-unknown}'. Table: ${TABLE}"
+    ;;
 
-  # Apply rules
-  emit_rules | sudo nft -f -
+  "off")
+    sudo nft delete table inet ${TABLE} 2>/dev/null || true
+    echo "🧹 Ghost Mode disabled. Table ${TABLE} removed."
+    ;;
 
-  echo "✅ Ghost Mode enabled on IFACE='${IFACE:-unknown}'. Table: ${TABLE}"
-  exit 0
-elif [[ "$CMD" == "off" ]]; then
-  sudo nft delete table inet ${TABLE} 2>/dev/null || true
-  echo "🧹 Ghost Mode disabled. Table ${TABLE} removed."
-  exit 0
-else
-  echo "Usage: $0 on|off|--dry-run"
-  exit 1
-fi
+  *)
+    echo "Usage: $0 on|off|--dry-run"
+    exit 1
+    ;;
+esac
