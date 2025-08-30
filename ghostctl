@@ -1,75 +1,50 @@
 #!/usr/bin/env bash
 # ┌────────────────────────────────────────────────────────────────┐
-# │ ghostctl.sh v1.2.2 — GhostOps Unified Control Suite           │
+# │ ghostctl v1.2.7 — GhostOps Unified Control Suite               │
 # ├────────────────────────────────────────────────────────────────┤
 # │ Author: Kehd Emmanuel H. Diaz                                  │
-# │ Location: ~/ghostops/ghostctl.sh                               │
-# │ Modules: ghostmode, vpnkill, audit, status, dry-run, reset     │
-# │ Version: 1.2.2                                                 │
-# │ Last Updated: 2025-08-28                                       │
+# │ Modules: ghostmode, vpnkill, audit, stealth, status, reset     │
+# │ Last Updated: 2025-08-30                                       │
 # └────────────────────────────────────────────────────────────────┘
 
 set -euo pipefail
 
 # ---[ paths and config ]------------------------------------------------------
 CMD="${1:-}"
-BASE_DIR="$HOME/ghostops"
+BASE_DIR="$(dirname "$(realpath "$0")")"
 GHOST_SCRIPT="$BASE_DIR/scripts/ghostmode.sh"
 VPN_SCRIPT="$BASE_DIR/scripts/vpnkill.sh"
 
 AUDIT_DIR="${AUDIT_DIR:-$BASE_DIR/logs}"
 SNAP_DIR="$AUDIT_DIR/snapshots"
 AUDIT_LOG="$AUDIT_DIR/ghostctl.log"
+STATUS_DIR="/run/ghostops"
+STATUS_FLAG="$STATUS_DIR/ghost.status"
 
 mkdir -p "$AUDIT_DIR" "$SNAP_DIR"
-
-# ---[ usage/help ]------------------------------------------------------------
-show_help() {
-  cat <<EOF
-
-GhostCTL v1.2.2 — Modular Privacy & Stealth Suite
-Author: Kehd Emmanuel H. Diaz
-Last Updated: 2025-08-28
-
-Usage: ghostctl <command>
-
-Available Commands:
-  on           Enable Ghost Mode (stealth firewall rules)
-  off          Disable Ghost Mode
-  vpn-on       Activate VPN Kill-Switch (block non-VPN traffic)
-  vpn-off      Disable VPN Kill-Switch
-  stealth      Enable both Ghost Mode and VPN Kill-Switch
-  status       Show current interface and IP address
-  audit        View recent logs and snapshots
-  dry-run      Preview Ghost Mode rules without applying them
-  reset        Clear logs and snapshots
-  autorun      Enable GhostOps autorun on system startup
-  --version    Show script metadata
-  --help       Display this usage guide
-
-EOF
-}
 
 # ---[ logging ]---------------------------------------------------------------
 log_action() {
   local msg="$1"
-  local MAX_LOG_SIZE=51200 # 50KB
-
+  local MAX_LOG_SIZE=51200
   if [[ -f "$AUDIT_LOG" && $(stat -c%s "$AUDIT_LOG") -gt $MAX_LOG_SIZE ]]; then
-    mv -f "$AUDIT_LOG" "$AUDIT_LOG.bak"
-    : > "$AUDIT_LOG"
+    mv -f "$AUDIT_LOG" "$AUDIT_LOG.bak" && : > "$AUDIT_LOG"
   fi
-
   printf '%s | %s\n' "$(date '+%F %T')" "$msg" >> "$AUDIT_LOG"
 }
 
-# ---[ status helpers ]--------------------------------------------------------
+# ---[ helpers ]---------------------------------------------------------------
+ensure_status_dir() {
+  if [[ ! -d "$STATUS_DIR" ]]; then
+    sudo mkdir -p "$STATUS_DIR"
+    sudo chown "$USER":"$USER" "$STATUS_DIR"
+  fi
+}
+
 resolve_default_iface() {
-  local dev
-  dev=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++){if($i=="dev"){print $(i+1); exit}}}')
-  [[ -z "${dev:-}" ]] && dev=$(ip -o -4 route show default 2>/dev/null | awk '{print $5}' | head -n1)
-  [[ -z "${dev:-}" ]] && dev=$(ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -Ev '^(lo|docker[0-9]*|veth.*|br-.*)$' | head -n1)
-  printf '%s' "${dev:-}"
+  ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++){if($i=="dev"){print $(i+1); exit}}}' ||
+  ip -o -4 route show default 2>/dev/null | awk '{print $5}' | head -n1 ||
+  ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -Ev '^(lo|docker|veth|br-)' | head -n1
 }
 
 get_ipv4_for_iface() {
@@ -78,7 +53,17 @@ get_ipv4_for_iface() {
 }
 
 list_active_ifaces_clean() {
-  ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -Ev '^(lo|docker[0-9]*|veth.*|br-.*)$' | tr '\n' ' ' | sed 's/[[:space:]]*$//'
+  ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -Ev '^(lo|docker|veth|br-)' | tr '\n' ' ' | sed 's/[[:space:]]*$//'
+}
+
+nft_ghost_active() {
+  if nft list table inet ghost &>/dev/null; then
+    return 0
+  elif command -v sudo >/dev/null 2>&1 && sudo -n nft list table inet ghost &>/dev/null; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 snapshot_status() {
@@ -98,12 +83,15 @@ snapshot_status() {
 on_command() {
   echo "🔒 Enabling Ghost Mode..."
   log_action "Ghost Mode ON"
+  ensure_status_dir
+  echo "Ghost Mode ON" > "$STATUS_FLAG"
   "$GHOST_SCRIPT" on
 }
 
 off_command() {
   echo "🔓 Disabling Ghost Mode..."
   log_action "Ghost Mode OFF"
+  rm -f "$STATUS_FLAG" || true
   "$GHOST_SCRIPT" off
 }
 
@@ -122,34 +110,44 @@ vpn_off_command() {
 stealth_command() {
   echo "🕶️ Activating Full Stealth Mode..."
   log_action "Stealth Mode Activated"
-  "$VPN_SCRIPT" on || echo "[i] VPN script skipped or failed."
+
+  if ip link show tun0 &>/dev/null; then
+    echo "[i] VPN interface tun0 detected. Activating kill-switch..."
+    "$VPN_SCRIPT" on || echo "[!] VPN script failed."
+  else
+    echo "[!] VPN interface tun0 not found. Skipping kill-switch."
+  fi
+
+  ensure_status_dir
+  echo "Ghost Mode ON" > "$STATUS_FLAG"
   "$GHOST_SCRIPT" on
+
+  printf '%s | stealth_complete iface=%s\n' "$(date -u '+%F %TZ')" "$(resolve_default_iface)" >> "$AUDIT_DIR/heartbeat.log"
 }
 
 status_command() {
   local gm_state iface ip iflist
-  if command -v nft >/dev/null 2>&1; then
-    if sudo nft list table inet ghost &>/dev/null; then
-      gm_state="ACTIVE"
-    else
-      gm_state="OFF"
-    fi
+
+  if [[ -f "$STATUS_FLAG" ]] && grep -q "Ghost Mode ON" "$STATUS_FLAG"; then
+    gm_state="ACTIVE"
+  elif nft_ghost_active; then
+    gm_state="ACTIVE"
   else
-    gm_state="UNKNOWN"
+    gm_state="OFF"
   fi
 
   iface="$(resolve_default_iface)"
-  iflist="$(list_active_ifaces_clean)"
   ip="$(get_ipv4_for_iface "$iface")"
+  iflist="$(list_active_ifaces_clean)"
 
-  [[ -z "${ip:-}" ]] && ip="N/A"
-  [[ -z "${iface:-}" ]] && iface="N/A"
-  [[ -z "${iflist:-}" ]] && iflist="N/A"
+  [[ -z "$ip" ]] && ip="N/A"
+  [[ -z "$iface" ]] && iface="N/A"
+  [[ -z "$iflist" ]] && iflist="N/A"
 
   case "$gm_state" in
     ACTIVE) echo -e "\e[32m🟢 Ghost Mode is ACTIVE\e[0m" ;;
     OFF)    echo -e "\e[31m🔴 Ghost Mode is OFF\e[0m" ;;
-    *)      echo -e "\e[33m🟡 Ghost Mode state: UNKNOWN (nft not found)\e[0m" ;;
+    *)      echo -e "\e[33m🟡 Ghost Mode state: UNKNOWN\e[0m" ;;
   esac
 
   echo "🌐 Interface: $iface"
@@ -170,10 +168,7 @@ audit_command() {
   echo "📜 Recent Logs:"
   [[ -f "$AUDIT_LOG" ]] && tail -n 20 "$AUDIT_LOG" || echo "  (no ghostctl.log yet)"
 
-  if command -v journalctl >/dev/null 2>&1; then
-    echo "🗄️  journalctl (last 20 matching 'GHOST'):"
-    journalctl -g "GHOST" -n 20 || true
-  fi
+  command -v journalctl >/dev/null && journalctl -g "GHOST" -n 20 || true
 }
 
 dry_run_command() {
@@ -183,7 +178,7 @@ dry_run_command() {
 
 reset_command() {
   echo "🧹 Resetting GhostOps logs and snapshots..."
-  rm -f "$SNAP_DIR"/status_*.log 2>/dev/null || true
+  rm -f "$SNAP_DIR"/status_*.log "$STATUS_FLAG" 2>/dev/null || true
   : > "$AUDIT_LOG"
   echo "✅ Cleanup complete."
 }
@@ -201,7 +196,9 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$BASE_DIR/ghostctl.sh stealth
+ExecStartPre=/usr/bin/mkdir -p /run/ghostops
+ExecStartPre=/usr/bin/chown $USER:$USER /run/ghostops
+ExecStart=$BASE_DIR/ghostctl stealth
 RemainAfterExit=true
 StandardOutput=append:$AUDIT_LOG
 StandardError=append:$AUDIT_LOG
@@ -219,11 +216,16 @@ EOF
 }
 
 version_command() {
-  echo "GhostOps Control Suite — ghostctl.sh"
-  echo "Version: 1.2.2"
+  echo "GhostOps Control Suite — ghostctl"
+  echo "Version: 1.2.7"
   echo "Author: Kehd Emmanuel H. Diaz"
-  echo "Last Updated: 2025-08-28"
+  echo "Last Updated: 2025-08-30"
   echo "Modules: ghostmode, vpnkill, audit, stealth, status, reset, autorun"
+}
+
+show_help() {
+  echo "Usage: ghostctl <command>"
+  echo "Commands: on, off, stealth, status, audit, dry-run, reset, autorun, --version, --help"
 }
 
 # ---[ main ]------------------------------------------------------------------

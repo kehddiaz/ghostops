@@ -3,3 +3,4 @@ logs/
 *.bak
 *.swp
 ~/.ghostmode/
+ghostctl.bak.*
