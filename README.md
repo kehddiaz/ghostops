@@ -1,42 +1,26 @@
-# 🕶️ GhostOps — Cockpit‑Grade Privacy & Stealth Suite
+# 🕶️ GhostOps — Privacy & Stealth Suite
 
-**GhostOps** is a modular, audit‑safe control suite for stealth networking on Linux.  
-It unifies nftables‑based LAN/multicast isolation, a VPN kill‑switch, audit logging, snapshot rollback, and systemd autorun — all via `ghostctl`.
+Modular, audit‑safe control suite for stealth networking on Linux.  
+Blocks LAN snooping, enforces VPN kill‑switch, rotates MACs, logs every change, and recovers fast.
 
 ## 🚀 Features
-- 🔒 **Ghost Mode** — Block LAN snooping, multicast leaks, router UI
-- 🛡️ **VPN Kill‑Switch** — No traffic outside VPN tunnel
-- 🧪 **Dry‑Run Mode** — Preview rules before applying
-- 🧾 **Audit Logs** — Timestamped, rotated, interface‑aware
-- 🧯 **Snapshot Recovery** — Rollback‑ready rulesets
-- 🌐 **Interface Fallback** — Auto‑detect active NIC
-- 🔁 **Systemd Autorun** — Optional stealth on boot
-- ♻️ **Post‑Reboot Persistence** — Stealth flag survives cold boots
-
-## 📦 Layout
-| Path                  | Purpose                          |
-|-----------------------|----------------------------------|
-| `ghostctl`            | Unified control suite            |
-| `scripts/ghostmode.sh`| Stealth firewall logic            |
-| `scripts/vpnkill.sh`  | VPN kill‑switch logic             |
-| `logs/ghostctl.log`   | Suite‑level audit log             |
+- 🔒 Ghost Mode — LAN/multicast isolation
+- 🛡️ VPN Kill‑Switch — No leaks outside tunnel
+- 🔄 MAC Rotation — Randomize hardware address on demand or boot
+- 🧾 JSONL Audit Logs — Forensic‑complete, rotated
+- 📡 Verify‑Net — MAC/IP/gateway/public IP snapshot
+- 🧯 Snapshot Rollback — Safe recovery
+- 🔁 Systemd Autorun — Stealth on boot
 
 ## 🔧 Usage
 ```bash
 ./ghostctl ghostmode     # Enable Ghost Mode
 ./ghostctl vpnkill       # Enable VPN Kill‑Switch
 ./ghostctl stealth       # Both modules
-./ghostctl dry-run       # Preview rules
+./ghostctl mac-rotate    # Rotate MAC address
+./ghostctl verify-net    # Log & show network state
 ./ghostctl status        # Check status
-./ghostctl audit         # View logs/snapshots
-./ghostctl reset         # Clear logs/snapshots
-./ghostctl autorun       # Enable autorun
 
-📌 v1.3.0 Highlights
-✅ Verified post‑reboot stealth flag persistence
+📌 v1.4.0 — Added verify-net, MAC rotation, refined logs, improved status output
 
-✅ Updated ghostctl status logic
-
-✅ .gitignore cleanup for backup artifacts
-
-✅ Docs refreshed for autorun & persistence
+If you want, I can also give you a **one‑liner Quick Start** to drop right under the title so new users can clone and run GhostOps in seconds — that would make this minimal README even more powerful for onboarding.
