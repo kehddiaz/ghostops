@@ -174,3 +174,4 @@ EXTRA="${NEW_INFO},\"old_mac\":\"${OLD_MAC}\",\"old_ip\":\"${OLD_IP}\",\"mode\":
 
 log_json "info" "cycle_complete" "ghostnet cycle complete" "$LOG_NOTE" "$EXTRA"
 
+

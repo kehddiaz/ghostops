@@ -33,3 +33,4 @@ If you want, I can also give you a **one‑liner Quick Start** to drop right und
 ✅ Docs refreshed for autorun & persistence
 
 >>>>>>> 851683c (Refresh: symbolic timestamp update — no functional changes)
+

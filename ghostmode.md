@@ -2615,3 +2615,4 @@ Once you paste this into `ghostmode.md`, you’ve got a discoverable, reproducib
 - Hardened log prefixes and rate limits
 - Verified dry-run output and syntax integrity
 
+
