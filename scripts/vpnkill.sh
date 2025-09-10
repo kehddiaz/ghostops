@@ -81,3 +81,4 @@ run iptables -A OUTPUT -j DROP
 echo "[✓] VPN Kill-Switch active. Non-VPN traffic blocked."
 
 exit 0
+

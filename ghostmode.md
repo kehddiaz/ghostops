@@ -2614,3 +2614,4 @@ Once you paste this into `ghostmode.md`, you’ve got a discoverable, reproducib
 - Moved all nft rules inside heredoc for safe emission
 - Hardened log prefixes and rate limits
 - Verified dry-run output and syntax integrity
+

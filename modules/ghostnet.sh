@@ -173,3 +173,4 @@ EXTRA="${NEW_INFO},\"old_mac\":\"${OLD_MAC}\",\"old_ip\":\"${OLD_IP}\",\"mode\":
 [[ -n "$VERIFY_INFO" ]] && EXTRA="${EXTRA},${VERIFY_INFO}"
 
 log_json "info" "cycle_complete" "ghostnet cycle complete" "$LOG_NOTE" "$EXTRA"
+

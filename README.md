@@ -23,4 +23,13 @@ Blocks LAN snooping, enforces VPN kill‑switch, rotates MACs, logs every change
 
 📌 v1.4.0 — Added verify-net, MAC rotation, refined logs, improved status output
 
+<<<<<<< HEAD
 If you want, I can also give you a **one‑liner Quick Start** to drop right under the title so new users can clone and run GhostOps in seconds — that would make this minimal README even more powerful for onboarding.
+=======
+✅ Updated ghostctl status logic
+
+✅ .gitignore cleanup for backup artifacts
+
+✅ Docs refreshed for autorun & persistence
+
+>>>>>>> 851683c (Refresh: symbolic timestamp update — no functional changes)

@@ -33,3 +33,4 @@ ghostctl [command]
 | `reset`        | Clear logs and snapshots                         |
 | `--version`    | Show script metadata                             |
 | `--help`       | Display usage guide and available commands       |
+
