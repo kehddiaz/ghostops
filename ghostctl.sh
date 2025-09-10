@@ -1,159 +1,169 @@
 #!/usr/bin/env bash
-#===============================================================================
-#  GhostOps Control Script - ghostctl.sh
-#-------------------------------------------------------------------------------
-#  Description : Unified control interface for GhostOps modules.
-#                Provides network identity rotation (ghostnet) and verification.
-#  Author      : Kehd Emmanuel H. Diaz
-#  Version     : 1.3
-#  Created     : 2025-08-31
-#  License     : MIT
-#-------------------------------------------------------------------------------
-#  Usage:
-#    ./ghostctl.sh rotate-net [--static|--dhcp] [--iface IFACE] [--verify-after] [--dry-run] [--note "text"]
-#    ./ghostctl.sh verify-net [--iface IFACE] [--run-id ID] [--no-public]
-#===============================================================================
+# ┌────────────────────────────────────────────────────────────┐
+# │ ghostctl.sh v1.2 — GhostOps Unified Control Suite          │
+# ├────────────────────────────────────────────────────────────┤
+# │ Author: Kehd Emmanuel H. Diaz                              │
+# │ Location: ~/ghostops/ghostctl.sh                           │
+# │ Modules: ghostmode, vpnkill, audit, status, dry-run, reset │
+# │ + ghostnet (rotate-net, verify-net)                        │
+# │ Version: 1.2                                               │
+# │ Last Updated: 2025-08-31 10:20 PST                         │
+# ├────────────────────────────────────────────────────────────┤
+# │ Changelog:                                                 │
+# │ - Unified ghostmode and vpnkill into stealth mode          │
+# │ - Added timestamped audit logging to ghostctl.log          │
+# │ - Modular command parsing with fallback help               │
+# │ - Status module shows active interface and IP              │
+# │ - Audit module tails kernel logs and ghostctl actions      │
+# │ - Added ghostnet module for MAC/IP rotation + verification │
+# └────────────────────────────────────────────────────────────┘
 
-set -Eeuo pipefail
+set -euo pipefail
 
-#--- Config --------------------------------------------------------------------
-GHOSTOPS_HOME="/home/kehd/ghostops"
-LOG_DIR="$GHOSTOPS_HOME/logs"
-GHOSTCTL_LOG="$LOG_DIR/ghostctl.log"
-GHOSTNET_BIN="$GHOSTOPS_HOME/modules/ghostnet.sh"
+CMD="${1:-}"
+GHOST_SCRIPT="$HOME/scripts/ghostmode.sh"
+VPN_SCRIPT="$HOME/scripts/vpnkill.sh"
+GHOSTNET_SCRIPT="$HOME/ghostops/modules/ghostnet.sh"
+AUDIT_LOG="$HOME/ghostops/logs/ghostctl.log"
 
-mkdir -p "$LOG_DIR"
+function show_help() {
+  cat <<EOF
 
-#--- Helpers -------------------------------------------------------------------
-gen_run_id() {
-  printf "%s-%s" \
-    "$(date -u +%Y%m%dT%H%M%S%3NZ)" \
-    "$(head -c 4 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+GhostCTL v1.2 — Modular Privacy & Stealth Suite
+Author: Kehd Emmanuel H. Diaz
+Last Updated: 2025-08-31
+
+Usage: ghostctl <command>
+
+Available Commands:
+  on           Enable Ghost Mode (stealth firewall rules)
+  off          Disable Ghost Mode
+  vpn-on       Activate VPN Kill-Switch (block non-VPN traffic)
+  vpn-off      Disable VPN Kill-Switch
+  stealth      Enable both Ghost Mode and VPN Kill-Switch
+  status       Show current interface and IP address
+  audit        View recent logs and snapshots
+  dry-run      Preview Ghost Mode rules without applying them
+  reset        Clear logs and snapshots
+  rotate-net   Rotate MAC/IP (DHCP or static) via ghostnet module
+  verify-net   Show current MAC/IP/SSID and last rotation log
+  --version    Show script metadata
+  --help       Display this usage guide
+
+EOF
 }
 
-json_escape() {
-  local s="$1"
-  s=${s//\\/\\\\}
-  s=${s//\"/\\\"}
-  s=${s//$'\n'/ }
-  s=${s//$'\r'/ }
-  printf '%s' "$s"
+function log_action() {
+  echo "$(date '+%F %T') | $1" >> "$AUDIT_LOG"
 }
 
-log_json() {
-  local level="$1"; shift
-  local event="$1"; shift
-  local msg="$1"; shift
-  local ts; ts="$(date -u +%Y-%m-%dT%H:%M:%S%3NZ)"
-  local extra=""
-  while (( "$#" )); do
-    kv="$1"; shift
-    key="${kv%%=*}"; val="${kv#*=}"
-    if [[ -n "$key" && -n "$val" ]]; then
-      if [[ "$val" =~ ^[0-9]+$ ]]; then
-        extra="${extra},\"$(json_escape "$key")\":${val}"
-      else
-        extra="${extra},\"$(json_escape "$key")\":\"$(json_escape "$val")\""
-      fi
-    fi
-  done
-  printf '{"ts":"%s","component":"ghostctl","level":"%s","event":"%s","msg":"%s"%s}\n' \
-    "$ts" "$(json_escape "$level")" "$(json_escape "$event")" "$(json_escape "$msg")" "$extra" >> "$GHOSTCTL_LOG"
-}
-
-usage() {
-  cat <<'EOF2'
-ghostctl - GhostOps control
-
-Commands:
-  rotate-net   Rotate MAC/IP via ghostnet module
-  verify-net   Verify network state
-
-Examples:
-  ./ghostctl.sh rotate-net --static --iface wlan0 --verify-after
-  ./ghostctl.sh verify-net --iface eth0
-EOF2
-}
-
-#--- Commands ------------------------------------------------------------------
-rotate_net() {
-  local mode="" iface="" verify_after=0 dry_run=0 note=""
-  iface="${IFACE:-$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}' || true)}"
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --static|--dhcp) mode="$1"; shift ;;
-      --iface) iface="$2"; shift 2 ;;
-      --verify-after) verify_after=1; shift ;;
-      --dry-run) dry_run=1; shift ;;
-      --note) note="$2"; shift 2 ;;
-      *) echo "Unknown flag: $1" >&2; exit 2 ;;
-    esac
-  done
-
-  local run_id; run_id="$(gen_run_id)"
-  log_json info rotate_net_start "network rotation starting" run_id="$run_id" mode="$mode" iface="$iface" dry_run="$dry_run" note="$note"
-
-  local args=()
-  [[ -n "$mode" ]] && args+=("$mode")
-  [[ -n "$iface" ]] && args+=(--iface "$iface")
-  [[ $dry_run -eq 1 ]] && args+=(--dry-run)
-  [[ -n "$note" ]] && args+=(--log-note "$note")
-  args+=(--run-id "$run_id")
-
-  set +e
-  sudo -n "$GHOSTNET_BIN" "${args[@]}"
-  local rc=$?
-  set -e
-
-  if [[ $rc -eq 0 ]]; then
-    log_json info rotate_net_ok "network rotation completed" run_id="$run_id"
+# === ghostnet helpers ===
+function rotate_net() {
+  echo "⚡️ Rotating MAC/IP (args: $*)"
+  log_action "Network rotation initiated: $*"
+  if [[ -x "$GHOSTNET_SCRIPT" ]]; then
+    sudo bash "$GHOSTNET_SCRIPT" "$@"
   else
-    log_json error rotate_net_fail "network rotation failed" run_id="$run_id" rc="$rc"
-    exit $rc
-  fi
-
-  if [[ $verify_after -eq 1 ]]; then
-    verify_net --run-id "$run_id" --iface "$iface" || true
+    echo "❌ ghostnet module not found at $GHOSTNET_SCRIPT"
+    exit 1
   fi
 }
 
-verify_net() {
-  local run_id="" iface="" check_public=1
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --run-id) run_id="$2"; shift 2 ;;
-      --iface) iface="$2"; shift 2 ;;
-      --no-public) check_public=0; shift ;;
-      *) echo "Unknown flag: $1" >&2; exit 2 ;;
-    esac
-  done
-
-  [[ -z "$iface" ]] && iface="${IFACE:-$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}' || true)}"
-
-  local state mac ip4 defrt pubip=""
-  state="$(ip -o link show "$iface" 2>/dev/null | awk '{print $9}' || true)"
-  mac="$(cat /sys/class/net/"$iface"/address 2>/dev/null || true)"
-  ip4="$(ip -o -4 addr show dev "$iface" 2>/dev/null | awk '{print $4}' || true)"
-  defrt="$(ip route show default 2>/dev/null | awk '/default/ {print $3}' || true)"
-
-  if [[ $check_public -eq 1 ]]; then
-    pubip="$(curl -4sS --max-time 3 https://ifconfig.io || true)"
+function verify_net() {
+  IFACE="${1:-wlan0}"
+  echo "🔎 Verifying network identity on $IFACE"
+  MAC="$(cat /sys/class/net/$IFACE/address 2>/dev/null || echo unknown)"
+  IP4="$(ip -4 -o addr show dev "$IFACE" | awk '{print $4}' | cut -d/ -f1 || true)"
+  SSID="$(nmcli -t -f active,ssid dev wifi | awk -F: '$1=="yes"{print $2; exit}' || true)"
+  GW="$(ip route | awk '/default/ && /'"$IFACE"'/ {print $3; exit}' || true)"
+  echo "    • MAC:  $MAC"
+  echo "    • IPv4: ${IP4:-none}"
+  echo "    • SSID: ${SSID:-none}"
+  echo "    • GW:   ${GW:-auto}"
+  if [[ -f "$HOME/ghostops/logs/ghostnet.log" ]]; then
+    echo "🧾 Last rotation:"
+    tail -n 1 "$HOME/ghostops/logs/ghostnet.log"
+  else
+    echo "🧾 No ghostnet.log found."
   fi
-
-  local ok=1
-  [[ "$state" == "UP" ]] || ok=0
-  [[ -n "$ip4" ]] || ok=0
-  [[ -n "$defrt" ]] || ok=0
-
-  log_json info verify_net "verify summary" run_id="$run_id" iface="$iface" state="$state" mac="$mac" ip4="$ip4" default_gw="$defrt" public_ip="${pubip:-n/a}" ok="$ok"
-  [[ $ok -eq 1 ]]
 }
 
-#--- Main ----------------------------------------------------------------------
-cmd="${1:-}"; shift || true
-case "$cmd" in
-  rotate-net) rotate_net "$@" ;;
-  verify-net) verify_net "$@" ;;
-  *) usage; [[ -n "$cmd" ]] && exit 2 ;;
+# === Dispatcher ===
+case "$CMD" in
+  on)
+    echo "🔒 Enabling Ghost Mode..."
+    log_action "Ghost Mode ON"
+    "$GHOST_SCRIPT" on
+    ;;
+  off)
+    echo "🔓 Disabling Ghost Mode..."
+    log_action "Ghost Mode OFF"
+    "$GHOST_SCRIPT" off
+    ;;
+  vpn-on)
+    echo "🛡️ Enabling VPN Kill-Switch..."
+    log_action "VPN Kill-Switch ON"
+    "$VPN_SCRIPT" on
+    ;;
+  vpn-off)
+    echo "🧼 Disabling VPN Kill-Switch..."
+    log_action "VPN Kill-Switch OFF"
+    "$VPN_SCRIPT" off
+    ;;
+  stealth)
+    echo "🕶️ Activating Full Stealth Mode..."
+    log_action "Stealth Mode Activated"
+    "$VPN_SCRIPT" on
+    "$GHOST_SCRIPT" on
+    ;;
+  status)
+    if sudo nft list table inet ghost &>/dev/null; then
+      echo "🟢 Ghost Mode is ACTIVE"
+    else
+      echo "🔴 Ghost Mode is OFF"
+    fi
+    IFACE=$(nmcli -t -f DEVICE,STATE d | grep ":connected" | cut -d: -f1 || echo "unknown")
+    IP=$(ip addr show "$IFACE" | grep 'inet ' | awk '{print $2}' || echo "N/A")
+    echo "🌐 Interface: $IFACE"
+    echo "📡 IP Address: $IP"
+    ;;
+  audit)
+    echo "📁 Recent Snapshots:"
+    ls -lt ~/.ghostmode/ | head -n 5
+    echo "📜 Recent Logs:"
+    sudo journalctl -g "GHOST v4" -n 20
+    echo "🧾 ghostctl actions:"
+    tail -n 10 "$AUDIT_LOG"
+    ;;
+  dry-run)
+    echo "🧪 Dry-run: Previewing Ghost Mode rules..."
+    "$GHOST_SCRIPT" --dry-run
+    ;;
+  reset)
+    echo "🧹 Resetting GhostOps logs and snapshots..."
+    rm -rf ~/.ghostmode/*
+    > "$AUDIT_LOG"
+    echo "✅ Cleanup complete."
+    ;;
+  rotate-net)
+    shift
+    rotate_net "$@"
+    ;;
+  verify-net)
+    shift
+    verify_net "$@"
+    ;;
+  --version)
+    echo "GhostOps Control Suite — ghostctl.sh"
+    echo "Version: 1.2"
+    echo "Author: Kehd Emmanuel H. Diaz"
+    echo "Last Updated: 2025-08-31"
+    echo "Modules: ghostmode, vpnkill, audit, stealth, status, reset, ghostnet"
+    ;;
+  --help)
+    show_help
+    ;;
+  *)
+    show_help
+    ;;
 esac
