@@ -2616,3 +2616,4 @@ Once you paste this into `ghostmode.md`, you’ve got a discoverable, reproducib
 - Verified dry-run output and syntax integrity
 
 
+
