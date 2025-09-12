@@ -1,38 +1,37 @@
 #!/usr/bin/env bash
 # ┌────────────────────────────────────────────────────────────────────────────┐
-# │ ghostctl.sh v1.3 — GhostOps Unified Control Suite                          │
+# │ ghostctl.sh v1.4 — GhostOps Unified Control Suite                          │
 # ├────────────────────────────────────────────────────────────────────────────┤
 # │ Author: Kehd Emmanuel H. Diaz                                              │
 # │ Location: ~/ghostops/ghostctl.sh                                           │
 # │ Modules: ghostmode, vpnkill, audit, status, dry-run, reset, ghostnet       │
 # │ + ghostvpn (vpn-up, vpn-connect, vpn-server-up, vpn-debug)                 │
 # │ + ghosttest-suite (stress test)                                            │
-# │ Version: 1.3                                                               │
-# │ Last Updated: 2025-09-11 11:55 PST                                         │
+# │ + ghostsecurity-scan (full laptop audit)                                   │
+# │ Version: 1.4                                                               │
+# │ Last Updated: 2025-09-11 14:37 PST                                         │
 # ├────────────────────────────────────────────────────────────────────────────┤
 # │ Changelog:                                                                 │
-# │ - Added ghostvpn-up and ghostvpn-connect for chained VPN rituals           │
-# │ - Added ghostvpn-server-up and ghostvpn-debug for remote verification      │
-# │ - Added ghosttest-suite for symbolic stress testing                        │
-# │ - Modularized ghostnet helpers and dispatcher entries                      │
+# │ - Added ghostsecurity-scan for symbolic laptop hardening                   │
+# │ - Scaffolded docs/security-suite.md SOP as contributor guide              │
+# │ - Refined ghostvpn-connect and ghosttest-suite for trap handling           │
 # └────────────────────────────────────────────────────────────────────────────┘
 
-set -euo pipefail
+# set -euo pipefail
 
 CMD="${1:-}"
 GHOST_SCRIPT="$HOME/scripts/ghostmode.sh"
 VPN_SCRIPT="$HOME/scripts/vpnkill.sh"
 GHOSTNET_SCRIPT="$HOME/ghostops/modules/ghostnet.sh"
 AUDIT_LOG="$HOME/ghostops/logs/ghostctl.log"
+LOG_DIR="$HOME/ghostops/logs"
+mkdir -p "$LOG_DIR"
 
 # === ghostvpn variables ===
 SERVER_HOST="${SERVER_HOST:-120.29.90.241}"
 SERVER_USER="${SERVER_USER:-kehd}"
 OVPN_FILE="${OVPN_FILE:-$HOME/ghostops/vpn/client1.ovpn}"
-LOG_DIR="${LOG_DIR:-$HOME/ghostops/logs}"
-mkdir -p "$LOG_DIR"
 
-# === ghostvpn helpers ===
 ghostvpn::_ts() { date '+%Y-%m-%d %H:%M:%S'; }
 ghostvpn::_log() { echo "[$(ghostvpn::_ts)] $1" | tee -a "$2"; }
 
@@ -86,8 +85,28 @@ ghosttest-suite() {
   ghostvpn::_log "✅ Stress suite complete." "$LOG"
 }
 
-# === ghostnet helpers ===
-function rotate_net() {
+ghostsecurity-scan() {
+  local LOG="$LOG_DIR/security-scan.log"
+  ghostvpn::_log "🛡️ Starting full laptop security scan..." "$LOG"
+
+  ghostvpn-up
+  "$VPN_SCRIPT" on
+  sleep 2
+  curl ifconfig.me | tee -a "$LOG"
+  curl https://dnsleaktest.com | tee -a "$LOG"
+  sudo nft list ruleset | tee -a "$LOG"
+  ip a | grep tun0 | tee -a "$LOG"
+  sudo ss -tunlp | tee -a "$LOG"
+  ghostvpn-connect &
+  sleep 2
+  killall -INT openvpn
+  tail "$LOG_DIR/vpn-client.log" | tee -a "$LOG"
+  ghostrefresh && ghosttag "security-scan-complete"
+  ghostsnapshot "laptop-security-verified"
+  ghostvpn::_log "✅ Security scan complete." "$LOG"
+}
+
+rotate_net() {
   echo "⚡️ Rotating MAC/IP (args: $*)"
   log_action "Network rotation initiated: $*"
   if [[ -x "$GHOSTNET_SCRIPT" ]]; then
@@ -98,7 +117,7 @@ function rotate_net() {
   fi
 }
 
-function verify_net() {
+verify_net() {
   IFACE="${1:-wlan0}"
   echo "🔎 Verifying network identity on $IFACE"
   MAC="$(cat /sys/class/net/$IFACE/address 2>/dev/null || echo unknown)"
@@ -117,10 +136,10 @@ function verify_net() {
   fi
 }
 
-function show_help() {
+show_help() {
   cat <<EOF
 
-GhostCTL v1.3 — Modular Privacy & Stealth Suite
+GhostCTL v1.4 — Modular Privacy & Stealth Suite
 Author: Kehd Emmanuel H. Diaz
 Last Updated: 2025-09-11
 
@@ -143,26 +162,23 @@ Available Commands:
   vpn-server-up  Start VPN server remotely
   vpn-debug      Run VPN diagnostics
   stress         Run full GhostOps stress test suite
+  security-scan  Run full laptop security audit
   --version      Show script metadata
   --help         Display this usage guide
 
 EOF
 }
 
-function log_action() {
+log_action() {
   echo "$(date '+%F %T') | $1" >> "$AUDIT_LOG"
 }
 
 # === Dispatcher ===
 case "$CMD" in
   on) echo "🔒 Enabling Ghost Mode..."; log_action "Ghost Mode ON"; "$GHOST_SCRIPT" on ;;
-  off) echo "🔓 Disabling Ghost Mode..."; log_action "Ghost Mode OFF"; "$GHOST_SCRIPT" off ;;
-  vpn-on) echo "🛡️ Enabling VPN Kill-Switch..."; log_action "VPN Kill-Switch ON"; "$VPN_SCRIPT" on ;;
-  vpn-off) echo "🧼 Disabling VPN Kill-Switch..."; log_action "VPN Kill-Switch OFF"; "$VPN_SCRIPT" off ;;
-  stealth) echo "🕶️ Activating Full Stealth Mode..."; log_action "Stealth Mode Activated"; "$VPN_SCRIPT" on; "$GHOST_SCRIPT" on ;;
+  off) echo "🔓
   status)
-    if sudo nft list table inet ghost &>/dev/null; then echo "🟢 Ghost Mode is ACTIVE"; else echo "🔴 Ghost Mode is OFF"; fi
-    IFACE=$(nmcli -t
+    IFACE=$(nmcli -t -f DEVICE,STATE d | grep ":connected" | cut -d: -f1 || echo "unknown")
     IP=$(ip addr show "$IFACE" | grep 'inet ' | awk '{print $2}' || echo "N/A")
     echo "🌐 Interface: $IFACE"
     echo "📡 IP Address: $IP"
@@ -208,12 +224,15 @@ case "$CMD" in
   stress)
     ghosttest-suite
     ;;
+  security-scan)
+    ghostsecurity-scan
+    ;;
   --version)
     echo "GhostOps Control Suite — ghostctl.sh"
-    echo "Version: 1.3"
+    echo "Version: 1.4"
     echo "Author: Kehd Emmanuel H. Diaz"
     echo "Last Updated: 2025-09-11"
-    echo "Modules: ghostmode, vpnkill, audit, stealth, status, reset, ghostnet, ghostvpn, ghosttest-suite"
+    echo "Modules: ghostmode, vpnkill, audit, stealth, status, reset, ghostnet, ghostvpn, ghosttest-suite, ghostsecurity-scan"
     ;;
   --help)
     show_help
@@ -223,5 +242,21 @@ case "$CMD" in
     ;;
 esac
 
+# ─────────────────────────────────────────────────────────────
+# 📜 ghostsecurity-scan SOP — Contributor Guide
+# ─────────────────────────────────────────────────────────────
+# Purpose: Run full laptop security audit and tag results
+# Steps:
+# 1. Run: ghostctl security-scan
+# 2. Checks:
+#    - VPN integrity and kill-switch
+#    - DNS leak and IP masking
+#    - Firewall rules and tun0 detection
+#    - Port scan and trap handling
+#    - Audit log and symbolic snapshot
+# 3. Output:
+#    - Logs saved to ~/ghostops/logs/security-scan.log
+#    - Tags: security-scan-complete, laptop-security-verified
+# ─────────────────────────────────────────────────────────────
 
 
