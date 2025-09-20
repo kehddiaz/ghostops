@@ -27,4 +27,3 @@ git pull --rebase origin main || { echo "[GhostOps] Pull failed"; exit 1; }
 # 5. Push local commits
 echo "[GhostOps] Pushing to GitHub..."
 git push origin main && echo "[GhostOps] Push complete!"
-
