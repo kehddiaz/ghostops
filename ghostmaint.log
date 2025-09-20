@@ -1,0 +1,49 @@
+[2025-09-20 17:06:43]  GhostMaint starting...
+[2025-09-20 17:06:43] Cleanup script completed.
+[2025-09-20 17:06:43] Scanning non-root partitions for fsck...
+[2025-09-20 17:06:43] Target: /dev/zram0 (FS: swap, Mount: [SWAP])
+[2025-09-20 17:06:43] Target: /dev/nvme0n1 (FS: unknown, Mount: unmounted)
+[2025-09-20 17:06:43] Target: /dev/nvme0n1p1 (FS: vfat, Mount: /boot)
+[2025-09-20 17:06:43] Target: /dev/nvme0n1p2 (FS: ext4, Mount: /)
+[2025-09-20 17:06:43] Target: /dev/nvme0n1p3 (FS: ext4, Mount: /home)
+[2025-09-20 17:10:05]  GhostMaint starting...
+[2025-09-20 17:10:05] Cleanup script completed.
+[2025-09-20 17:10:05] Scanning non-root partitions for fsck...
+[2025-09-20 17:10:05] Target: /dev/zram0 (FS: swap, Mount: [SWAP])
+[2025-09-20 17:10:05] Target: /dev/nvme0n1 (FS: unknown, Mount: unmounted)
+[2025-09-20 17:10:05] Checking /dev/nvme0n1...
+fsck from util-linux 2.41.1
+/dev/nvme0n1 is in use.
+[2025-09-20 17:10:05] Target: /dev/nvme0n1p1 (FS: vfat, Mount: /boot)
+[2025-09-20 17:10:05] Target: /dev/nvme0n1p2 (FS: ext4, Mount: /)
+[2025-09-20 17:10:05] Target: /dev/nvme0n1p3 (FS: ext4, Mount: /home)
+[2025-09-20 17:15:09]  GhostMaint starting...
+[2025-09-20 17:15:09] Cleanup script completed.
+[2025-09-20 17:15:09] Scanning non-root partitions for fsck...
+[2025-09-20 17:15:09] Target: /dev/zram0 (FS: swap, Mount: [SWAP])
+[2025-09-20 17:15:09] Target: /dev/nvme0n1 (FS: unknown, Mount: unmounted)
+[2025-09-20 17:15:09] Checking /dev/nvme0n1...
+fsck from util-linux 2.41.1
+/dev/nvme0n1 is in use.
+[2025-09-20 17:15:09] Target: /dev/nvme0n1p1 (FS: vfat, Mount: /boot)
+[2025-09-20 17:15:09] Target: /dev/nvme0n1p2 (FS: ext4, Mount: /)
+[2025-09-20 17:15:09] Target: /dev/nvme0n1p3 (FS: ext4, Mount: /home)
+[2025-09-20 17:47:20]  GhostMaint starting...
+[2025-09-20 17:47:20] Cleanup script completed.
+[2025-09-20 17:47:20] Scanning non-root partitions for fsck...
+[2025-09-20 17:47:20] Target: /dev/zram0 (FS: swap, Mount: [SWAP])
+[2025-09-20 17:47:20] Target: /dev/nvme0n1 (FS: unknown, Mount: unmounted)
+[2025-09-20 17:47:20] Checking /dev/nvme0n1...
+fsck from util-linux 2.41.1
+/dev/nvme0n1 is in use.
+[2025-09-20 17:47:20] Target: /dev/nvme0n1p1 (FS: vfat, Mount: /boot)
+[2025-09-20 17:47:20] Target: /dev/nvme0n1p2 (FS: ext4, Mount: /)
+[2025-09-20 17:47:20] Target: /dev/nvme0n1p3 (FS: ext4, Mount: /home)
+[2025-09-20 17:50:35]  GhostMaint starting...
+[2025-09-20 17:50:35] Cleanup script completed.
+[2025-09-20 17:50:35] Scanning non-root partitions for fsck...
+[2025-09-20 17:50:35] Target: /dev/zram0 (FS: swap, Mount: [SWAP])
+[2025-09-20 17:50:35] Target: /dev/nvme0n1 (FS: unknown, Mount: unmounted)
+[2025-09-20 17:50:35] Target: /dev/nvme0n1p1 (FS: vfat, Mount: /boot)
+[2025-09-20 17:50:35] Target: /dev/nvme0n1p2 (FS: ext4, Mount: /)
+[2025-09-20 17:50:35] Target: /dev/nvme0n1p3 (FS: ext4, Mount: /home)
