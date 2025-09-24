@@ -1,0 +1,25 @@
+name: Release and Bump License Year
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  bump-license-year:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run year-bump script
+        run: scripts/update-license-years.sh
+
+      - name: Commit and push license updates
+        env:
+          NEW_YEAR: \$(date +'%Y')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add LICENSE \$(find . -type f -name '*.sh')
+          git commit -m "chore: bump license year to \$NEW_YEAR"
+          git push
