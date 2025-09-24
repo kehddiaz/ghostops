@@ -1,0 +1,35 @@
+name: Validate SPDX Headers
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  header-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: List all shell scripts
+        run: |
+          find . -type f -name '*.sh' | tee all-scripts.txt
+
+      - name: Verify SPDX header in each script
+        run: |
+          missing=0
+          while IFS= read -r file; do
+            if ! head -n1 "$file" | grep -q 'SPDX-License-Identifier: MIT'; then
+              echo "::error file=$file::Missing SPDX-License-Identifier: MIT"
+              missing=1
+            fi
+          done < all-scripts.txt
+
+          if [ "$missing" -ne 0 ]; then
+            echo "❌ SPDX header check failed."
+            exit 1
+          else
+            echo "✅ All scripts include SPDX-License-Identifier: MIT"
+          fi
