@@ -4,14 +4,14 @@ set -euo pipefail
 
 current_year="$(date +'%Y')"
 
-# 1. Bump the year range in LICENSE
-sed -E "s/© 2023.*Diaz/© 2023–\$current_year Kehd Emmanuel H. Diaz/" LICENSE \
+# 1. Bump LICENSE file
+sed -E "s/© 2023.*Diaz/© 2023–${current_year} Kehd Emmanuel H. Diaz/" LICENSE \
   | tee LICENSE.tmp >/dev/null && mv LICENSE.tmp LICENSE
 
-# 2. Bump the year range in every .sh header (lines 1–2)
-find . -type f -name '*.sh' | while IFS= read -r file; do
-  sed -E '1,2 s|© 2023.*Diaz|© 2023–'"\$current_year"' Kehd Emmanuel H. Diaz|' "\$file" \
-    | tee "\$file.tmp" >/dev/null \
-    && chmod --reference="\$file" "\$file.tmp" \
-    && mv -f "\$file.tmp" "\$file"
+# 2. Bump every .sh header (lines 1–2)
+find . -type f -name '*.sh' -print0 | while IFS= read -r -d '' file; do
+  sed -E "1,2 s@© 2023.*Diaz@© 2023–${current_year} Kehd Emmanuel H. Diaz@" "$file" \
+    | tee "${file}.tmp" >/dev/null \
+    && chmod --reference="$file" "${file}.tmp" \
+    && mv -f "${file}.tmp" "$file"
 done
