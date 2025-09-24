@@ -18,7 +18,7 @@ for m in milestones:
         left_text   = m['name'],
         right_text  = m['status'],
         right_color = color,
-        style       = 'flat'
+        template    = 'flat'
     )
     path = os.path.join(out_dir, f"{m['id']}.svg")
     with open(path, 'w') as out:
