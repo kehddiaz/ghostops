@@ -46,17 +46,25 @@ jobs:
           fetch-depth: 0
           submodules: false
 
-      - name: Set up Python for badge generation
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Install badge dependencies
+      - name: Set up runtime
         run: |
-          pip install pillow pymodbus  # adjust to whatever your script needs
+          if [ -f scripts/generateBadge.py ]; then
+            echo "⏳ Using Python badge generator"
+            python3 -m pip install --upgrade pip
+            pip install pybadges
+          else
+            echo "⏳ Using Node badge generator"
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          fi
 
       - name: Generate badges
-        run: python scripts/generateBadge.py
+        run: |
+          if [ -f scripts/generateBadge.py ]; then
+            python3 scripts/generateBadge.py
+          else
+            node scripts/generate-badges.js
+          fi
 
       - name: Pull latest changes
         run: |
