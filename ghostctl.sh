@@ -1,5 +1,5 @@
 SPDX-License-Identifier: MIT
-© 2023-2025 Kehd Emmanuel H. Diaz
+© 2023–2025 Kehd Emmanuel H. Diaz
 
 #!/usr/bin/env bash
 # 
