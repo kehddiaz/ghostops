@@ -14,9 +14,9 @@ with open(data_file) as f:
 
 for m in milestones:
     color = 'brightgreen' if m['status'] == 'completed' else 'orange'
-    svg   = pybadges.badge(
-        left        = m['name'],
-        right       = m['status'],
+    svg = pybadges.badge(
+        left_text   = m['name'],
+        right_text  = m['status'],
         right_color = color,
         style       = 'flat'
     )
