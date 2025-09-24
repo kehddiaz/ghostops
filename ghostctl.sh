@@ -17,7 +17,21 @@
 # │ - Refined ghostvpn-connect and ghosttest-suite for trap handling           │
 # └────────────────────────────────────────────────────────────────────────────┘
 
-# set -euo pipefail
+set -euo pipefail
+
+# Determine the repo root for plugins & configs
+GHOSTOPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ——— Load GhostOps milestone plugins ———
+MILESTONE_DIR="$GHOSTOPS_DIR/milestones"
+mkdir -p "$MILESTONE_DIR"
+
+for plugin in "$MILESTONE_DIR"/*.plugin.sh; do
+  if [[ -x "$plugin" ]]; then
+    bash "$plugin" "$@"
+  fi
+done
+# ————————————————————————————————————
 
 CMD="${1:-}"
 GHOST_SCRIPT="$HOME/scripts/ghostmode.sh"
