@@ -42,6 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,6 +56,12 @@ jobs:
 
       - name: Generate badges
         run: node scripts/generate-badges.js
+
+      - name: Pull latest changes
+        run: |
+          git config user.name "GhostOps Bot"
+          git config user.email "noreply@github.com"
+          git pull origin main --rebase
 
       - name: Commit badges
         uses: EndBug/add-and-commit@v9
