@@ -1,22 +1,25 @@
 {
   "milestones": [
     {
-      "id": "0x001",
-      "name": "CEH",
-      "status": "completed",
-      "timestamp": "2025-09-24T14:52:29Z"
+      "id":        "0x001",
+      "name":      "CEH",
+      "status":    "completed",
+      "level":     "intermediate",
+      "timestamp": "2025-09-24T14:02:38Z"
     },
     {
-      "id": "0x002",
-      "name": "OSCP",
-      "status": "pending",
-      "timestamp": "2025-09-24T14:33:16Z"
+      "id":        "0x002",
+      "name":      "OSCP",
+      "status":    "pending",
+      "level":     "advanced",
+      "timestamp": "2025-09-24T14:02:38Z"
     },
     {
-      "id": "0x003",
-      "name": "CISSP",
-      "status": "pending",
-      "timestamp": "2025-09-24T14:33:16Z"
+      "id":        "0x003",
+      "name":      "CISSP",
+      "status":    "pending",
+      "level":     "expert",
+      "timestamp": "2025-09-24T14:02:38Z"
     }
   ]
 }
