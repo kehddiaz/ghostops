@@ -1,5 +1,8 @@
 name: Validate & Badge Milestones
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -26,7 +29,7 @@ jobs:
       - name: Run validation
         run: |
           python - <<PYCODE
-          import json, jsonschema, sys
+          import json, jsonschema
           schema = json.load(open(".github/schema/milestones.schema.json"))
           data   = json.load(open("milestones/milestones.json"))
           jsonschema.validate(instance=data, schema=schema)
@@ -54,6 +57,7 @@ jobs:
       - name: Commit badges
         uses: EndBug/add-and-commit@v9
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           author_name: "GhostOps Bot"
           author_email: "noreply@github.com"
           message: "chore: update milestone badges"
