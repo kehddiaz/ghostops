@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python for validation
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -26,7 +26,7 @@ jobs:
       - name: Install jsonschema
         run: pip install jsonschema
 
-      - name: Run JSON schema validation
+      - name: Validate JSON
         run: |
           python - <<PYCODE
           import json, jsonschema
@@ -46,31 +46,16 @@ jobs:
           fetch-depth: 0
           submodules: false
 
-      - name: Set up runtime
-        run: |
-          if [ -f scripts/generateBadge.py ]; then
-            echo "⏳ Using Python badge generator"
-            python3 -m pip install --upgrade pip
-            pip install pybadges
-          else
-            echo "⏳ Using Node badge generator"
-            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-          fi
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install pybadges
+        run: pip install pybadges
 
       - name: Generate badges
-        run: |
-          if [ -f scripts/generateBadge.py ]; then
-            python3 scripts/generateBadge.py
-          else
-            node scripts/generate-badges.js
-          fi
-
-      - name: Pull latest changes
-        run: |
-          git config user.name "GhostOps Bot"
-          git config user.email "noreply@github.com"
-          git pull origin main --rebase
+        run: python scripts/generateBadge.py
 
       - name: Commit badges
         uses: EndBug/add-and-commit@v9
