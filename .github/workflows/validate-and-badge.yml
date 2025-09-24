@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python for validation
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -26,7 +26,7 @@ jobs:
       - name: Install jsonschema
         run: pip install jsonschema
 
-      - name: Run validation
+      - name: Run JSON schema validation
         run: |
           python - <<PYCODE
           import json, jsonschema
@@ -46,16 +46,17 @@ jobs:
           fetch-depth: 0
           submodules: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Python for badge generation
+        uses: actions/setup-python@v4
         with:
-          node-version: "18"
+          python-version: "3.x"
 
-      - name: Install badge-maker
-        run: npm install --no-save badge-maker
+      - name: Install badge dependencies
+        run: |
+          pip install pillow pymodbus  # adjust to whatever your script needs
 
       - name: Generate badges
-        run: node scripts/generate-badges.js
+        run: python scripts/generateBadge.py
 
       - name: Pull latest changes
         run: |
