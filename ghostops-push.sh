@@ -1,3 +1,6 @@
+SPDX-License-Identifier: MIT
+© 2023-2025 Kehd Emmanuel H. Diaz
+
 #!/usr/bin/env bash
 # ============================================
 #  GhostOps Push Ritual v2.1
@@ -18,7 +21,8 @@ echo "[GhostOps] Testing GitHub connection..."
 if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
     echo "[GhostOps] SSH authentication OK"
 else
-    echo "[GhostOps] SSH test failed — check your key, agent, or GitHub settings"
+    echo "[GhostOps] SSH test failed — check your key, agent, or GitHub 
+settings"
     exit 1
 fi
 

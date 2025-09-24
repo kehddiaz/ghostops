@@ -1,21 +1,49 @@
+SPDX-License-Identifier: MIT
+© 2023-2025 Kehd Emmanuel H. Diaz
+
 #!/usr/bin/env bash
-# ┌────────────────────────────────────────────────────────────────────────────┐
-# │ GhostOps VPN Kill-Switch v1.2.3 — sudo-wrapped, audit-safe, dry-run ready │
-# ├────────────────────────────────────────────────────────────────────────────┤
-# │ Author: Kehd Emmanuel H. Diaz                                              │
-# │ Location: ~/ghostops/scripts/vpnkill.sh                                    │
-# │ Modules: firewall flush, VPN-only traffic, audit logging, symbolic wrapper│
-# │ Version: 1.2.3                                                             │
-# │ Last Updated: 2025-08-28                                                   │
-# ├────────────────────────────────────────────────────────────────────────────┤
-# │ Changelog:                                                                 │
-# │ - Pre-check for VPN interface status to prevent lockdown                  │
-# │ - Dry-run mode for previewing firewall actions                             │
-# │ - Snapshot logging of VPN interface status                                 │
-# │ - Log rotation to prevent audit log bloat                                  │
-# │ - Optional symbolic wrapper: --intercede                                   │
-# │ - Hardened exit codes and error traps                                      │
-# └────────────────────────────────────────────────────────────────────────────┘
+# 
+┌─────────────────────────
+──────────────────────────
+─────────────────────────┐
+# │ GhostOps VPN Kill-Switch v1.2.3 — sudo-wrapped, audit-safe, dry-run 
+ready │
+# 
+├─────────────────────────
+──────────────────────────
+─────────────────────────┤
+# │ Author: Kehd Emmanuel H. Diaz                                           
+   │
+# │ Location: ~/ghostops/scripts/vpnkill.sh                                 
+   │
+# │ Modules: firewall flush, VPN-only traffic, audit logging, symbolic 
+wrapper│
+# │ Version: 1.2.3                                                          
+   │
+# │ Last Updated: 2025-08-28                                                
+   │
+# 
+├─────────────────────────
+──────────────────────────
+─────────────────────────┤
+# │ Changelog:                                                              
+   │
+# │ - Pre-check for VPN interface status to prevent lockdown                
+  │
+# │ - Dry-run mode for previewing firewall actions                          
+   │
+# │ - Snapshot logging of VPN interface status                              
+   │
+# │ - Log rotation to prevent audit log bloat                               
+   │
+# │ - Optional symbolic wrapper: --intercede                                
+   │
+# │ - Hardened exit codes and error traps                                   
+   │
+# 
+└─────────────────────────
+──────────────────────────
+─────────────────────────┘
 
 set -euo pipefail
 
@@ -26,7 +54,8 @@ MAX_LOG_SIZE=51200  # 50KB
 
 DRY_RUN=false
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
-[[ "${1:-}" == "--intercede" ]] && echo "[✝] Invoking upstream validation via saint-daemon..."
+[[ "${1:-}" == "--intercede" ]] && echo "[✝] Invoking upstream validation 
+via saint-daemon..."
 
 # Cache sudo credentials up front
 sudo -v
@@ -50,13 +79,16 @@ fi
 IFACE_STATUS=$(ip addr show "$VPN_IF" | grep inet || true)
 if [[ -z "$IFACE_STATUS" ]]; then
   echo "[!] VPN interface $VPN_IF not active. Kill-switch aborted."
-  echo "$(date '+%F %T') | ABORT: $VPN_IF inactive. Kill-switch not applied." >> "$AUDIT_LOG"
+  echo "$(date '+%F %T') | ABORT: $VPN_IF inactive. Kill-switch not applied." 
+>> "$AUDIT_LOG"
   exit 1
 fi
 
 # Snapshot VPN interface status
-echo "$(date '+%F %T') | VPN Kill-Switch activated for $VPN_IF" >> "$AUDIT_LOG"
-echo "$(date '+%F %T') | Interface $VPN_IF status: $IFACE_STATUS" >> "$AUDIT_LOG"
+echo "$(date '+%F %T') | VPN Kill-Switch activated for $VPN_IF" >> 
+"$AUDIT_LOG"
+echo "$(date '+%F %T') | Interface $VPN_IF status: $IFACE_STATUS" >> 
+"$AUDIT_LOG"
 
 echo "[+] Activating VPN Kill-Switch for interface: $VPN_IF"
 
